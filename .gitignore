@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.*egg-info/
+
+# Virtual Environment
+venv/
+env/
+.venv/
+
+# Pycharm
+.idea/
+
+# Environment/Secrets
+.env
+
+# Project Data
+*.db
+
+# OS
+.DB_Store
+Thumbs.db
