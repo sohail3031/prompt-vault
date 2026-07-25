@@ -5,6 +5,7 @@ __pycache__/
 *.pyd
 .Python
 .*egg-info/
+promptvault.egg-info/
 
 # Virtual Environment
 venv/
