@@ -17,7 +17,7 @@ dev = [
 ]
 
 [project.scripts]
-promptvault = "promptvault.cli:hello"
+promptvault = "promptvault.cli:cli"
 
 [build-system]
 requires = ["setuptools>=61.0"]
