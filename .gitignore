@@ -19,6 +19,7 @@ env/
 .env
 
 # Project Data
+data/
 *.db
 
 # OS
