@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sqlite3
 import re
 from typing import Optional
@@ -32,14 +34,24 @@ class DataOperations:
 
     def _create_database_connection(self) -> None:
         """create connection to database"""
-        _database: Database = Database()
-        self._connection = _database.get_connection()
+        self._connection = Database().get_connection()
+
+        assert self._connection is not None
+
         self._cursor = self._connection.cursor()
+
+        assert self._cursor is not None
 
     def add_prompt(self, command: str, title: str, body: str) -> None:
         """add new Prompt in the database"""
         self._validate_command(command=command)
         self._create_database_connection()
+
+        if self._cursor is None:
+            raise RuntimeError("Database cursor failed to initialize")
+
+        if self._connection is None:
+            raise RuntimeError("Failed to initialize database connection")
 
         try:
             self._cursor.execute(
@@ -56,11 +68,23 @@ class DataOperations:
         """get the Prompt from the database"""
         self._validate_command(command=command)
         self._create_database_connection()
-        self._cursor.execute("SELECT * FROM prompts WHERE command = ?", (command,))
 
-        row: sqlite3.Row | None = self._cursor.fetchone()
+        row: sqlite3.Row | None = None
 
-        self._connection.close()
+        if self._cursor is None:
+            raise RuntimeError("Database cursor failed to initialize")
+
+        if self._connection is None:
+            raise RuntimeError("Failed to initialize database connection")
+
+        try:
+            self._cursor.execute("SELECT * FROM prompts WHERE command = ?", (command,))
+
+            row = self._cursor.fetchone()
+        except Exception as e:
+            print(e)
+        finally:
+            self._connection.close()
 
         if row is None:
             return None
@@ -70,14 +94,25 @@ class DataOperations:
     def list_prompts(self) -> list[PromptsEntry]:
         """get all the prompts from the database"""
         self._create_database_connection()
-        self._cursor.execute("SELECT * FROM prompts")
 
-        rows: list[sqlite3.Row] = self._cursor.fetchall()
-        available_prompts: list[PromptsEntry] = [
-            PromptsEntry.from_row(row) for row in rows
-        ]
+        rows: list[sqlite3.Row]
+        available_prompts: list[PromptsEntry] = []
 
-        self._connection.close()
+        if self._cursor is None:
+            raise RuntimeError("Database cursor failed to initialize")
+
+        if self._connection is None:
+            raise RuntimeError("Failed to initialize database connection")
+
+        try:
+            self._cursor.execute("SELECT * FROM prompts")
+
+            rows = self._cursor.fetchall()
+            available_prompts = [PromptsEntry.from_row(row) for row in rows]
+        except Exception as e:
+            print(e)
+        finally:
+            self._connection.close()
 
         return available_prompts
 
@@ -87,6 +122,12 @@ class DataOperations:
         self._create_database_connection()
 
         prompt_update: dict[str, object] = {}
+
+        if self._connection is None:
+            raise RuntimeError("Failed to initialize database connection")
+
+        if self._cursor is None:
+            raise RuntimeError("Database cursor failed to initialize")
 
         if title is not None:
             prompt_update["title"] = title
@@ -102,15 +143,19 @@ class DataOperations:
         set_clause: str = ", ".join(f"{col} = ?" for col in prompt_update)
         set_clause += ", updated_at = CURRENT_TIMESTAMP"
         values: list[object] = list(prompt_update.values()) + [command]
+        row_count: int = 0
 
-        self._cursor.execute(
-            f"UPDATE prompts SET {set_clause} WHERE command = ?", values
-        )
-        self._connection.commit()
+        try:
+            self._cursor.execute(
+                f"UPDATE prompts SET {set_clause} WHERE command = ?", values
+            )
+            self._connection.commit()
 
-        row_count: int = self._cursor.rowcount
-
-        self._connection.close()
+            row_count = self._cursor.rowcount
+        except Exception as e:
+            print(e)
+        finally:
+            self._connection.close()
 
         return bool(row_count)
 
@@ -118,12 +163,24 @@ class DataOperations:
         """delete prompt from the database"""
         self._validate_command(command=command)
         self._create_database_connection()
-        self._cursor.execute("DELETE FROM prompts WHERE command = ?", (command,))
-        self._connection.commit()
 
-        row_count: int = self._cursor.rowcount
+        row_count: int = 0
 
-        self._connection.close()
+        if self._cursor is None:
+            raise RuntimeError("Database cursor failed to initialize")
+
+        if self._connection is None:
+            raise RuntimeError("Failed to initialize database connection")
+
+        try:
+            self._cursor.execute("DELETE FROM prompts WHERE command = ?", (command,))
+            self._connection.commit()
+
+            row_count = self._cursor.rowcount
+        except Exception as e:
+            print(e)
+        finally:
+            self._connection.close()
 
         return bool(row_count)
 
@@ -139,7 +196,7 @@ class DataOperations:
                 f'The command "{command}" contains spaces at the beginning or at the end of the command'
             )
 
-        if len(command) not in range(1, 50):
+        if len(command) not in range(1, 51):
             raise InvalidCommandError(
                 f'The command "{command}"\'s length is invalid. The command length should be in between 1 and 50 characters'
             )

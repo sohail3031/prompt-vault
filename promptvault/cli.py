@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import click
 from promptvault.crud import DataOperations, DuplicateCommandError, InvalidCommandError
 from promptvault.model.prompts_entry import PromptsEntry
@@ -23,13 +25,13 @@ def add(command: str, title: str, body: str):
     try:
         DataOperations().add_prompt(command=command, title=title, body=body)
 
-        print(f"The prompt {command} was added successfully!")
+        click.echo(f"The prompt {command} was added successfully!")
     except DuplicateCommandError as error:
-        print(f"The {command} is duplicate")
-        print(error)
+        click.echo(error)
     except InvalidCommandError as error:
-        print(f"The {command} is invalid")
-        print(error)
+        click.echo(error)
+    except RuntimeError as error:
+        click.echo(error)
 
 
 @cli.command()
@@ -44,21 +46,25 @@ def get(command: str):
         prompt: PromptsEntry | None = DataOperations().get_prompt(command=command)
 
         if prompt:
-            print(f"{prompt.command}\n{prompt.title}\n{prompt.body}")
+            click.echo(f"{prompt.command}\n{prompt.title}\n{prompt.body}")
         else:
-            print(f"There is not prompt with {command}")
+            click.echo(f"There is not prompt with {command}")
     except InvalidCommandError as error:
-        print(f"The {command} is invalid")
-        print(error)
+        click.echo(error)
+    except RuntimeError as error:
+        click.echo(error)
 
 
 @cli.command(name="list")
 def list_prompts():
     """list all the prompts from the database"""
-    available_prompts: list[PromptsEntry] = DataOperations().list_prompts()
+    try:
+        available_prompts: list[PromptsEntry] = DataOperations().list_prompts()
 
-    for prompt in available_prompts:
-        print(f"{prompt.command}\n{prompt.title}\n{prompt.body}")
+        for prompt in available_prompts:
+            click.echo(f"{prompt.command}\n{prompt.title}\n{prompt.body}")
+    except RuntimeError as error:
+        click.echo(error)
 
 
 @cli.command()
@@ -66,17 +72,14 @@ def list_prompts():
     "--command",
     prompt="Command name (e.g. 'summarize')",
     help="Short unique name used to update this prompt later.",
+    default=None,
 )
 @click.option(
     "--title",
     help="Short, human-readable title for the prompt.",
     default=None,
 )
-@click.option(
-    "--body",
-    help="The full prompt content to store.",
-    default=None,
-)
+@click.option("--body", help="The full prompt content to store.")
 def update(command: str, title: str | None, body: str | None):
     """update the prompt in the database"""
     try:
@@ -85,12 +88,13 @@ def update(command: str, title: str | None, body: str | None):
         )
 
         if flag:
-            print(f"The prompt with {command} has been updated successfully.")
+            click.echo(f"The prompt with {command} has been updated successfully.")
         else:
-            print(f"Unable to update the prompt with {command}.")
+            click.echo(f"Unable to update the prompt with {command}.")
     except InvalidCommandError as error:
-        print(f"The {command} is invalid")
-        print(error)
+        click.echo(error)
+    except RuntimeError as error:
+        click.echo(error)
 
 
 @cli.command()
@@ -105,12 +109,13 @@ def delete(command: str):
         flag: bool = DataOperations().delete_prompt(command=command)
 
         if flag:
-            print(f"The prompt with {command} has been deleted successfully.")
+            click.echo(f"The prompt with {command} has been deleted successfully.")
         else:
-            print(f"Unable to delete the prompt with {command}.")
+            click.echo(f"Unable to delete the prompt with {command}.")
     except InvalidCommandError as error:
-        print(f"The {command} is invalid")
-        print(error)
+        click.echo(error)
+    except RuntimeError as error:
+        click.echo(error)
 
 
 if __name__ == "__main__":
