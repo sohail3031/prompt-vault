@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, asdict, fields
-from typing import Optional
+from typing import Optional, Any
 from datetime import datetime
 
 import sqlite3
@@ -21,9 +21,7 @@ class PromptsEntry:
         """constructs a PromptEntry from a database row"""
         init_fields: set[str] = {f.name for f in fields(cls) if f.init}
         row_keys: list[str] = row.keys()
-        data: dict[str, object] = {
-            key: row[key] for key in row_keys if key in init_fields
-        }
+        data: dict[str, Any] = {key: row[key] for key in row_keys if key in init_fields}
 
         return cls(**data)
 
