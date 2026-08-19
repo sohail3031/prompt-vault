@@ -9,36 +9,52 @@ from promptvault.model.prompts_entry import PromptsEntry
 
 
 class DuplicateCommandError(Exception):
-    """exception to raise when the duplicate command entered"""
+    """Raised when attempting to add a prompt with a command that already exists."""
 
     pass
 
 
 class InvalidCommandError(Exception):
-    """exception to raise when the command is in invalid format"""
+    """Raised when a command name fails validation (empty, malformed, reserved, etc.)."""
 
     pass
 
 
 class TagAlreadyAppliedError(Exception):
-    """exception to raise when trying to add a tag to a prompt that already has a tag"""
+    """Raised when attempting to apply a tag that's already applied to the prompt."""
 
     pass
 
 
 class TagNotAppliedError(Exception):
-    """exception to raise when trying to remove a tag which is not present with the prompt"""
+    """Raised when attempting to remove a tag that isn't applied to the prompt."""
 
     pass
 
 
 class PromptNotFoundError(Exception):
-    """exception to raise when no prompt was found"""
+    """Raised when looking up a prompt by command name finds no match."""
 
     pass
 
 
 class DataOperations:
+    """Data access layer for PromptVault's SQLite database.
+
+    Provides CRUD operations for prompts and tag management, opening
+    and closing a fresh database connection for each method call
+    rather than holding one open for the lifetime of the instance.
+
+    Attributes:
+        _connection: The active `sqlite3.Connection` for the current
+            method call, or None between calls.
+        _cursor: The active `sqlite3.Cursor` for the current method
+            call, or None between calls.
+        _reserved_words: Command names that cannot be used as a
+            prompt's command, since they collide with CLI subcommand
+            names (e.g. 'add', 'list').
+    """
+
     def __init__(self) -> None:
         self._connection: sqlite3.Connection | None = None
         self._cursor: sqlite3.Cursor | None = None
@@ -403,17 +419,21 @@ class DataOperations:
             raise RuntimeError("Failed to initialize database connection")
 
         try:
-            self._cursor.execute("SELECT id FROM prompts WHERE command=?", (command,))
+            self._cursor.execute("SELECT id FROM prompts WHERE command = ?", (command,))
 
-            prompt_id = self._cursor.fetchone()["id"]
+            prompt_row = self._cursor.fetchone()
+
+            if prompt_row is None:
+                raise PromptNotFoundError(f"No prompt found with command: {command}")
+
+            prompt_id = prompt_row["id"]
             tag_id = self._get_or_create_tag_id(tag_name=tag_name)
+
             self._cursor.execute(
                 "INSERT INTO prompt_tags (prompt_id, tag_id) VALUES (?, ?)",
                 (prompt_id, tag_id),
             )
             self._connection.commit()
-        except TypeError:
-            raise PromptNotFoundError(f"Unable to add Prompt Tag: {tag_name}")
         except sqlite3.IntegrityError as e:
             raise TagAlreadyAppliedError(f"Tag: {tag_name} already exists") from e
         finally:
