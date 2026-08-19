@@ -147,13 +147,19 @@ def update(command: str, title: str | None, body: str | None):
     prompt="Command name (e.g. 'summarize')",
     help="Short unique name used to delete this prompt.",
 )
-def delete(command: str):
-    """Delete a prompt from the database.
+@click.option("--yes", is_flag=True, help="Skip the confirmation prompt.")
+def delete(command: str, yes: bool):
+    """Delete a prompt from the database, after confirming with the user.
 
     Args:
         command: The unique command name identifying the prompt to
             delete.
+        yes: If True, skip the confirmation prompt and delete
+            immediately without asking.
     """
+    if not yes and not click.confirm(f"Delete prompt '{command}'?"):
+        return
+
     try:
         flag: bool = DataOperations().delete_prompt(command=command)
 
