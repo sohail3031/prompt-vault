@@ -26,12 +26,6 @@ class TagAlreadyAppliedError(Exception):
     pass
 
 
-class TagNotAppliedError(Exception):
-    """Raised when attempting to remove a tag that isn't applied to the prompt."""
-
-    pass
-
-
 class PromptNotFoundError(Exception):
     """Raised when looking up a prompt by command name finds no match."""
 
@@ -533,3 +527,63 @@ class DataOperations:
             self._connection.close()
 
         return [PromptsEntry.from_row(row) for row in rows]
+
+    def list_prompts_with_tags(self) -> list[dict[str, object]]:
+        """List every prompt alongside its associated tags.
+
+        Uses a LEFT JOIN so prompts with zero tags are still included
+        (with `tags` as None), rather than being silently excluded.
+
+        Returns:
+            A list of dicts, each with keys 'command', 'title', and
+            'tags' (a comma-separated string of tag names, or None if
+            the prompt has no tags).
+        """
+        self._create_database_connection()
+
+        if self._cursor is None:
+            raise RuntimeError("Database cursor failed to initialize")
+
+        if self._connection is None:
+            raise RuntimeError("Failed to initialize database connection")
+
+        try:
+            self._cursor.execute(
+                "SELECT p.command, p.title, GROUP_CONCAT(t.name, ', ') AS tags "
+                "FROM prompts p "
+                "LEFT JOIN prompt_tags pt ON p.id = pt.prompt_id "
+                "LEFT JOIN tags t ON pt.tag_id = t.id "
+                "GROUP BY p.id;"
+            )
+
+            rows: list[sqlite3.Row] = self._cursor.fetchall()
+        finally:
+            self._connection.close()
+
+        return [dict(row) for row in rows]
+
+    def get_all_commands(self) -> list[str]:
+        """Return every prompt's command name, for fuzzy-match suggestions.
+
+        Lightweight compared to `list_prompts()` — fetches only the
+        `command` column, not full prompt records.
+
+        Returns:
+            A list of all command names currently in the database. Empty
+            list if there are no prompts.
+        """
+        self._create_database_connection()
+
+        if self._cursor is None:
+            raise RuntimeError("Database cursor failed to initialize")
+
+        if self._connection is None:
+            raise RuntimeError("Failed to initialize database connection")
+
+        try:
+            self._cursor.execute("SELECT command FROM prompts")
+            rows: list[sqlite3.Row] = self._cursor.fetchall()
+        finally:
+            self._connection.close()
+
+        return [row["command"] for row in rows]
