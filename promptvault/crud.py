@@ -233,23 +233,28 @@ class DataOperations:
         return bool(row_count)
 
     def delete_prompt(self, command: str) -> bool:
-        """Delete a prompt from the database."""
         self._validate_command(command=command)
         self._create_database_connection()
 
         if self._cursor is None:
             raise RuntimeError("Database cursor failed to initialize")
-
         if self._connection is None:
             raise RuntimeError("Failed to initialize database connection")
 
         row_count: int = 0
 
         try:
-            self._cursor.execute("DELETE FROM prompts WHERE command = ?", (command,))
-            self._connection.commit()
+            self._cursor.execute("SELECT id FROM prompts WHERE command = ?", (command,))
+            prompt_row = self._cursor.fetchone()
 
-            row_count = self._cursor.rowcount
+            if prompt_row is not None:
+                prompt_id = prompt_row["id"]
+                self._cursor.execute(
+                    "DELETE FROM prompt_tags WHERE prompt_id = ?", (prompt_id,)
+                )
+                self._cursor.execute("DELETE FROM prompts WHERE id = ?", (prompt_id,))
+                self._connection.commit()
+                row_count = self._cursor.rowcount
         finally:
             self._connection.close()
 
