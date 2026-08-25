@@ -16,6 +16,7 @@ dev = [
     "ruff==0.16.0",
     "mypy==2.3.0",
     "types-tabulate==0.10.0.20260508",
+    "pytest==9.1.1"
 ]
 
 [project.scripts]
