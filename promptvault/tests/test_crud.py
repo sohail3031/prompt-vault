@@ -322,3 +322,12 @@ def test_validate_command_rejects_invalid(data_ops: DataOperations, command: str
 def test_validate_command_accepts_valid(data_ops: DataOperations, command: str):
     # Should not raise.
     data_ops._validate_command(command=command)
+
+
+def test_delete_prompt_with_tags_succeeds(data_ops: DataOperations):
+    data_ops.add_prompt(command="foo", title="A", body="B", tags=["career"])
+
+    result = data_ops.delete_prompt(command="foo")
+
+    assert result is True
+    assert data_ops.get_prompt(command="foo") is None
