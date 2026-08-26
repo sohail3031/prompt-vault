@@ -16,9 +16,14 @@ a comma-separated string directly on `prompts` (which would make searching
 by tag slow and fragile, and duplicate tag names across rows), tags live in
 their own table, and `prompt_tags` is a join table linking the two by id.
 
-`prompt_tags.prompt_id`/`tag_id` both have `ON DELETE CASCADE` foreign keys,
-so deleting a prompt or a tag automatically cleans up the association rows
-— no orphaned links left behind.
+`prompt_tags` has no cascading delete behavior in the schema — deleting a
+prompt requires explicitly removing its `prompt_tags` rows first, which
+`delete_prompt` does within the same transaction before deleting the
+prompt itself. This was a real bug caught during Phase 5 testing: SQLite's
+foreign key enforcement (`PRAGMA foreign_keys = ON`) correctly rejected a
+delete that would have left orphaned `prompt_tags` rows, and the fix was
+to clean up the child rows explicitly rather than relying on the database
+to do it automatically.
 
 `prompts.command` and `tags.name` both have `UNIQUE` constraints, enforced
 at the database level as a backstop — even though application-level
