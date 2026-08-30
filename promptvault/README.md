@@ -182,3 +182,16 @@ git add .
 git commit -m "..."
 git push -u origin <branch>
 ```
+
+## Building the Desktop App
+
+The desktop UI can be packaged as a standalone Windows executable via PyInstaller.
+
+\`\`\`bash
+pip install -e ".[dev]"
+pyinstaller --name PromptVault --windowed --onedir --add-data "schema.sql;." promptvault/ui/app.py --noconfirm
+\`\`\`
+
+The built executable will be at `dist/PromptVault/PromptVault.exe`. It stores its
+database in an OS-appropriate user data directory (via `platformdirs`), separate
+from the source-run version's `data/promptvault.db`.
