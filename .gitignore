@@ -25,3 +25,8 @@ data/
 # OS
 .DB_Store
 Thumbs.db
+
+# PyInstaller build artifacts
+build/
+dist/
+*.spec.bak
