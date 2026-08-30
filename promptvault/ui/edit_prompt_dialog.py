@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 )
 
 from promptvault.crud import DataOperations
+from promptvault.crud import InvalidCommandError
 
 
 class EditPromptDialog(QDialog):
@@ -75,10 +76,9 @@ class EditPromptDialog(QDialog):
 
         try:
             self.data_ops.update_prompt(command=self.command, title=title, body=body)
-        except Exception as error:  # InvalidCommandError, RuntimeError
+        except InvalidCommandError as error:
             self._error_label.setText(str(error))
             self._error_label.setVisible(True)
             return
 
-        self.accept()
         self.accept()

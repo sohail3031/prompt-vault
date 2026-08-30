@@ -198,7 +198,7 @@ class MainWindow(QMainWindow):
 
         if dialog.exec():
             self.refresh()
-            self._detail_title_label.setText(prompt.title)
+            self._on_prompt_selected()
 
     def _on_delete_clicked(self) -> None:
         """Confirm and delete the selected prompt."""
@@ -215,10 +215,13 @@ class MainWindow(QMainWindow):
         if confirm != QMessageBox.StandardButton.Yes:
             return
 
-        try:
-            self.data_ops.delete_prompt(command=self._selected_command)
-        except Exception as error:
-            self._show_error(str(error))
+        deleted = self.data_ops.delete_prompt(command=self._selected_command)
+
+        if not deleted:
+            self._show_error(
+                f"Unable to delete the prompt with {self._selected_command}."
+            )
+
             return
 
         self._detail_title_label.clear()
