@@ -119,6 +119,7 @@ class TagDialog(QDialog):
         except PromptNotFoundError as error:
             self._error_label.setText(str(error))
             self._error_label.setVisible(True)
+
             return
 
         self._error_label.setVisible(False)
