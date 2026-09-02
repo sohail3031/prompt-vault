@@ -4,7 +4,7 @@ a = Analysis(
     ['promptvault/ui/app.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('assets/icon.ico', 'assets')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
