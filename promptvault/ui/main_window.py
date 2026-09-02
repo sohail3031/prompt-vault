@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -20,6 +24,20 @@ from promptvault.ui.add_prompt_dialog import AddPromptDialog
 from promptvault.ui.edit_prompt_dialog import EditPromptDialog
 from promptvault.ui.tag_dialog import TagDialog
 
+PLACEHOLDER_TITLE = "Select a prompt to view its details"
+
+
+def _resolve_asset_path(*parts: str) -> Path:
+    """Resolve a path to a bundled asset, whether running from source
+    or as a PyInstaller-packaged executable.
+    """
+    if hasattr(sys, "_MEIPASS"):
+        base_path = Path(sys._MEIPASS)  # type: ignore[attr-defined]
+    else:
+        base_path = Path(__file__).parent.parent.parent
+
+    return base_path.joinpath(*parts)
+
 
 class MainWindow(QMainWindow):
     """Main window for the PromptVault desktop app: a list + detail view.
@@ -27,7 +45,7 @@ class MainWindow(QMainWindow):
     Displays every stored prompt in a filterable list on the left;
     selecting a prompt shows its full title, body, and tags in a
     detail panel on the right. Supports full CRUD via Add/Edit/
-    Delete/Manage Tags buttons.
+    Delete/Manage Tags buttons, plus a Delete key shortcut.
 
     Args:
         data_ops: Optional DataOperations instance to use for all
@@ -42,6 +60,7 @@ class MainWindow(QMainWindow):
         )
 
         self.setWindowTitle("PromptVault")
+        self.setWindowIcon(QIcon(str(_resolve_asset_path("assets", "icon.ico"))))
         self.resize(900, 600)
 
         # --- Widgets ---
@@ -102,9 +121,15 @@ class MainWindow(QMainWindow):
         self._delete_button.clicked.connect(self._on_delete_clicked)
         self._tags_button.clicked.connect(self._on_tags_clicked)
 
+        # --- Delete key shortcut, scoped to the list widget only ---
+        delete_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Delete), self._list_widget)
+        delete_shortcut.setContext(Qt.ShortcutContext.WidgetShortcut)
+        delete_shortcut.activated.connect(self._on_delete_clicked)
+
         # --- Initial data load ---
         self._selected_command: str | None = None
         self._all_prompts: list[dict] = []
+        self._show_placeholder_detail()
         self.refresh()
 
     def refresh(self) -> None:
@@ -123,8 +148,14 @@ class MainWindow(QMainWindow):
 
         for prompt in prompts:
             item = QListWidgetItem(f"{prompt['command']} - {prompt['title']}")
-            item.setData(Qt.UserRole, prompt["command"])
+            item.setData(Qt.ItemDataRole.UserRole, prompt["command"])
             self._list_widget.addItem(item)
+
+    def _show_placeholder_detail(self) -> None:
+        """Reset the detail panel to its empty/no-selection state."""
+        self._detail_title_label.setText(PLACEHOLDER_TITLE)
+        self._detail_body_label.clear()
+        self._detail_tag_label.clear()
 
     def _on_prompt_selected(self) -> None:
         """Load the selected prompt's full details into the detail panel."""
@@ -135,9 +166,10 @@ class MainWindow(QMainWindow):
             self._edit_button.setEnabled(False)
             self._delete_button.setEnabled(False)
             self._tags_button.setEnabled(False)
+            self._show_placeholder_detail()
             return
 
-        command = item.data(Qt.UserRole)
+        command = item.data(Qt.ItemDataRole.UserRole)
         prompt = self.data_ops.get_prompt(command=command)
 
         if prompt is None:
@@ -201,7 +233,11 @@ class MainWindow(QMainWindow):
             self._on_prompt_selected()
 
     def _on_delete_clicked(self) -> None:
-        """Confirm and delete the selected prompt."""
+        """Confirm and delete the selected prompt.
+
+        Triggered either by the Delete button or the Delete key
+        shortcut (when the list widget has focus).
+        """
         if self._selected_command is None:
             return
 
@@ -215,22 +251,17 @@ class MainWindow(QMainWindow):
         if confirm != QMessageBox.StandardButton.Yes:
             return
 
-        deleted = self.data_ops.delete_prompt(command=self._selected_command)
-
-        if not deleted:
-            self._show_error(
-                f"Unable to delete the prompt with {self._selected_command}."
-            )
-
+        try:
+            self.data_ops.delete_prompt(command=self._selected_command)
+        except Exception as error:
+            self._show_error(str(error))
             return
 
-        self._detail_title_label.clear()
-        self._detail_body_label.clear()
-        self._detail_tag_label.clear()
         self._selected_command = None
         self._edit_button.setEnabled(False)
         self._delete_button.setEnabled(False)
         self._tags_button.setEnabled(False)
+        self._show_placeholder_detail()
 
         self.refresh()
 
