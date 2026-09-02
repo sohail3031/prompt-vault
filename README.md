@@ -1,13 +1,23 @@
 # PromptVault
 
-A personal command-line tool for storing, tagging, and instantly retrieving reusable AI prompts - no more digging
-through notes apps or old chat threads to find that one prompt you know you wrote.
+A personal CLI and desktop tool for storing, tagging, and instantly retrieving reusable AI prompts.
 
-## Overview
+## About
 
-I maintain dozens of reusable prompts for recurring workflows - resume vs. job description analysis, resume tailoring,
-mock interview prep, project scaffolding, and more. PromptVault stores them in a local database and lets me retrieve any
-prompt instantly by typing a short command (e.g. `promptvault get analyze`), or browse them by tag.
+PromptVault is a personal tool for managing reusable AI prompts — built to
+solve a simple problem: dozens of prompts for recurring workflows (resume
+analysis, mock interviews, project scaffolding) scattered across notes and
+old chat threads, with no fast way to find them.
+
+It's available as both a command-line tool and a native desktop app, both
+built on the same tested SQLite data layer. Store a prompt once, tag it,
+and retrieve it instantly by typing a short command — no more digging.
+
+Built end-to-end as a real-world engineering exercise: normalized schema
+design, full test coverage (pytest + Click's CliRunner), proper git
+branching with protected `main` and PR-based merges, pre-commit hooks
+(Black, Ruff, mypy), and a packaged, standalone Windows executable via
+PyInstaller.
 
 ## Tech Stack
 
